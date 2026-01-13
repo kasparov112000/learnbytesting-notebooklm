@@ -1,16 +1,11 @@
-name: Build and Deploy NotebookLM
+name: Build NotebookLM (Local Service)
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Image tag to deploy'
-        required: false
-        default: 'latest'
 
 env:
   REGISTRY: docker.io
@@ -19,12 +14,26 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint with flake8 (optional)
+        continue-on-error: true
+        run: |
+          pip install flake8
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -56,26 +65,14 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
-  # Note: This service typically runs locally, K8s deployment is optional
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' && false  # Disabled by default - enable when needed
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install doctl
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
-      - name: Save DigitalOcean kubeconfig
-        run: doctl kubernetes cluster kubeconfig save 3b23a2dd-3391-4d1a-a478-e2a5564de99c
-
-      - name: Deploy to Kubernetes
-        run: |
-          helm upgrade --install notebooklm ./helm \
-            --set image.tag=${{ github.sha }} \
-            --wait --timeout 5m
+# =============================================================================
+# NOTE: This service runs LOCALLY via Tailscale proxy, NOT in Kubernetes.
+#
+# The Docker image is built for backup/portability purposes only.
+# To run locally:
+#   1. Run VS Code task: "NotebookLM Login (Re-authenticate)"
+#   2. Run VS Code task: "NotebookLM Service (Start)"
+#
+# The service connects to K8s via Tailscale at:
+#   notebooklm-proxy.tailscale.svc.cluster.local:3034
+# =============================================================================
