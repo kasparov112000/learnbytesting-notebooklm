@@ -1,0 +1,67 @@
+# NotebookLM Microservice Helm Values
+# Note: This service typically runs LOCALLY and connects via Tailscale
+# K8s deployment is optional for the proxy/connector component
+
+replicaCount: 1
+
+image:
+  repository: kasparov112000/learnbytesting-notebooklm
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 3034
+
+ingress:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment variables
+env:
+  PORT: "3034"
+  ENV_NAME: "production"
+  LOG_LEVEL: "INFO"
+  # MongoDB URL should be configured via secret
+  # MONGODB_URL: "mongodb://..."
+  # Tailscale IP for local service connection
+  # TAILSCALE_IP: "100.x.x.x"
+
+# For connecting to local service via Tailscale
+# When running locally, K8s uses this proxy to reach the service
+tailscale:
+  enabled: false
+  # Local machine's Tailscale IP where notebooklm service runs
+  localServiceIP: ""
+  localServicePort: 3034
