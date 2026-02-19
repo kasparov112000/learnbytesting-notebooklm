@@ -33,6 +33,20 @@ Write-Host "Press any key to start authentication..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 Write-Host ""
 
+# Clean up locked browser profile if it exists
+$browserProfile = "$env:USERPROFILE\.notebooklm\browser_profile"
+if (Test-Path $browserProfile) {
+    Write-Host "Cleaning up previous browser profile..."
+    # Force close any processes that might have files locked
+    Get-Process | Where-Object { $_.Path -like "*ms-playwright*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+    # Try to remove the profile directory
+    Remove-Item -Path $browserProfile -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $browserProfile) {
+        Write-Host "WARNING: Could not fully clean browser profile. Close any Chrome windows and try again."
+    }
+}
+
 # Run notebooklm login
 notebooklm login
 
@@ -42,7 +56,24 @@ Write-Host "Authentication complete!"
 Write-Host "=========================================="
 Write-Host "Credentials stored in: $env:USERPROFILE\.notebooklm\"
 Write-Host ""
-Write-Host "You can now:"
-Write-Host "  - Start the service: Run 'NotebookLM Service (Start)' task"
-Write-Host "  - Ask questions via: POST http://localhost:3034/ask"
+Write-Host "IMPORTANT: Google sessions expire after a few hours."
 Write-Host ""
+Write-Host "To keep your session alive, run the keep-alive script:"
+Write-Host "  - VS Code Task: 'NotebookLM Keep-Alive (Browser)'"
+Write-Host "  - Or run: .\scripts\keep-alive.ps1"
+Write-Host ""
+Write-Host "The keep-alive script opens a browser that refreshes"
+Write-Host "NotebookLM every 30 minutes to prevent session expiry."
+Write-Host ""
+
+$startKeepAlive = Read-Host "Start keep-alive now? (y/N)"
+if ($startKeepAlive -eq 'y' -or $startKeepAlive -eq 'Y') {
+    Write-Host ""
+    Write-Host "Starting keep-alive..."
+    & "$ScriptDir\keep-alive.ps1"
+} else {
+    Write-Host ""
+    Write-Host "You can start keep-alive later with:"
+    Write-Host "  - VS Code Task: 'NotebookLM Keep-Alive (Browser)'"
+    Write-Host ""
+}

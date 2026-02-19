@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # LearnByTesting.ai dedicated notebook
+    # This notebook contains all context about the LBT platform
+    lbt_notebook_id: str = "21c5377f-c88a-408d-9bd0-d776ac26f0af"
+    lbt_notebook_name: str = "LearnByTesting.ai Context"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
